@@ -276,7 +276,15 @@
     _pageHidden = pageHidden;
     self.page.hidden = pageHidden;
 }
-
+- (void)setSelIndex:(NSInteger)selIndex{
+    _selIndex = selIndex;
+    self.count = selIndex;
+    self.scrollView.contentOffset = CGPointMake(self.scrollView.frame.size.width*(selIndex), 0);//初始页面
+    self.page.currentPage = self.count-1;
+    if ([self.delegate respondsToSelector:@selector(ScrollThePageNumber:)]) {
+        [self.delegate ScrollThePageNumber:self.count];
+    }
+}
 
 @end
 

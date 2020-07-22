@@ -29,6 +29,7 @@
 
 
 @property(nonatomic,assign)UIViewContentMode contentMode;//图片显示模式
+@property(nonatomic,assign)NSInteger selIndex;//设置当前选中页码
 
 - (void)removeTime;//如不使用定时器可移除即不使用
 /**------------------------------------------------------------page配置-------------------------------------------------------------------------------------------------------------*/

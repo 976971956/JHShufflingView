@@ -88,6 +88,7 @@
     
     shufflingView.urlImageArray = imageUrls;//设置图片数组
     //    [shufflingView removeTime];
+    shufflingView.selIndex = 2;
 }
 
 - (void)ScrollThePageNumber:(NSInteger)num{
