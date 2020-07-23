@@ -18,7 +18,8 @@
 
 @property(nonatomic,strong)NSTimer *timers;//定时器
 
-@property(nonatomic,assign)CGFloat Vwidth;//定时器
+@property(nonatomic,assign)CGFloat Vwidth;//scrollview宽
+@property(nonatomic,assign)CGFloat Vheight;//scrollview高
 
 @property(nonatomic,assign)NSInteger count;//页码记录
 @end
@@ -45,6 +46,7 @@
 - (instancetype)initWithFrame:(CGRect)frame{
     if (self = [super initWithFrame:frame]) {
         self.Vwidth = frame.size.width;
+        self.Vheight = frame.size.height;
         [self createUI];
     }
     return self;
@@ -88,7 +90,11 @@
 - (void)setingShufflinhDatas:(NSMutableArray *)datas IsNetworking:(BOOL)isNet{
     self.page.numberOfPages = datas.count-2;
     for (int i = 0 ; i< datas.count; i++) {
-        UIImageView *img = [[UIImageView alloc] initWithFrame:CGRectMake(self.Vwidth*i, 0, self.Vwidth, self.frame.size.height)];
+        CGRect imgFrame = CGRectMake(0, self.Vheight*i, self.Vwidth, self.Vheight);
+        if (self.scrollDirType == JHShufflingScrollDir_Right|| self.scrollDirType == JHShufflingScrollDir_Left) {
+            imgFrame = CGRectMake(self.Vwidth*i, 0, self.Vwidth, self.Vheight);
+        }
+        UIImageView *img = [[UIImageView alloc] initWithFrame:imgFrame];
         img.contentMode = self.contentMode;
         img.userInteractionEnabled = YES;
         img.tag = i;
@@ -122,11 +128,14 @@
             title2.font = model.title2Font;
         }
         [img addSubview:title2];
+
 //        如果是网络图片
         NSRange range = [model.imageUrl rangeOfString:@"http"];
         if (range.location != NSNotFound) {
             [UIImageView beginDownLoadImageUrl:model.imageUrl downLoadFinish:^(NSString *filePath) {
-                img.image = [UIImage imageWithContentsOfFile:filePath];
+//                img.image = [UIImage imageWithContentsOfFile:filePath];
+                [img setGifImage:[NSURL fileURLWithPath:filePath]];
+
             } loadFailure:^(NSError *error) {
                 
             }];
@@ -137,38 +146,73 @@
 
     }
 
+    if (self.scrollDirType == JHShufflingScrollDir_Right||self.scrollDirType == JHShufflingScrollDir_Left) {
+        self.scrollView.contentOffset = CGPointMake(self.scrollView.frame.size.width, 0);//初始页面
+        self.scrollView.contentSize = CGSizeMake(self.scrollView.frame.size.width*datas.count,self.scrollView.frame.size.height);//设置内容大小
+        self.count = 1;
+    }else{
+        self.scrollView.contentOffset = CGPointMake(0, self.scrollView.frame.size.height);//初始页面
+        self.scrollView.contentSize = CGSizeMake(self.Vwidth,self.Vheight*datas.count);//设置内容大小
+        self.count = 1;
+    }
 
-    self.scrollView.contentOffset = CGPointMake(self.scrollView.frame.size.width, 0);//初始页面
-    self.scrollView.contentSize = CGSizeMake(self.scrollView.frame.size.width*datas.count,self.scrollView.frame.size.height);//设置内容大小
-    self.count = 1;
 }
 
 -(void)pageClick:(UIPageControl *)page{
     
 }
-
+//定时器任务
 - (void)runTime{
-    self.count++;
+    if (self.scrollDirType == JHShufflingScrollDir_Right||self.scrollDirType == JHShufflingScrollDir_Bottom) {
+        self.count++;
+    }else if(self.scrollDirType == JHShufflingScrollDir_Left||self.scrollDirType == JHShufflingScrollDir_Top){
+        self.count--;
+    }
+    if (self.scrollDirType == JHShufflingScrollDir_Right||self.scrollDirType == JHShufflingScrollDir_Left) {
+        if (self.count == self.urlImageArray.count-1 ) {
+                   self.count = 1;
+                   self.page.currentPage = 0;
+                   self.scrollView.contentOffset = CGPointMake(0, 0);
 
-    if (self.count == self.urlImageArray.count-1 ) {
-        self.count = 1;
-        self.page.currentPage = 0;
-        self.scrollView.contentOffset = CGPointMake(0, 0);
+                   [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width, 0) animated:YES];
 
-        [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width, 0) animated:YES];
+               }else if (self.count == 0) {
+                   self.count = self.urlImageArray.count-2;
+                   self.page.currentPage = self.urlImageArray.count-2 ;
+                   [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width*(self.urlImageArray.count-2), 0) animated:YES];
+               }else{
+                   self.page.currentPage = self.count-1;
+                   [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width*(self.count), 0) animated:YES];
 
-    }else if (self.count == 0) {
-        self.count = self.urlImageArray.count-2;
-        self.page.currentPage = self.urlImageArray.count-2 ;
-        [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width*(self.urlImageArray.count-2), 0) animated:YES];
-    }else{
-        self.page.currentPage = self.count-1;
-        [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width*(self.count), 0) animated:YES];
+               }
+               if ([self.delegate respondsToSelector:@selector(ScrollThePageNumber:)]) {
+                   [self.delegate ScrollThePageNumber:self.count];
+               }
+
+    }else if(self.scrollDirType == JHShufflingScrollDir_Bottom||self.scrollDirType == JHShufflingScrollDir_Top){
+        if (self.count == self.urlImageArray.count-1 ) {
+            self.count = 1;
+            self.page.currentPage = 0;
+            self.scrollView.contentOffset = CGPointMake(0, 0);
+
+            [self.scrollView setContentOffset:CGPointMake(0, self.scrollView.frame.size.height) animated:YES];
+
+        }else if (self.count == 0) {
+            self.count = self.urlImageArray.count-2;
+            self.page.currentPage = self.urlImageArray.count-2 ;
+            self.scrollView.contentOffset = CGPointMake(0, self.Vheight*(self.urlImageArray.count-1));
+            [self.scrollView setContentOffset:CGPointMake(0, self.Vheight*(self.urlImageArray.count-2)) animated:YES];
+        }else{
+            self.page.currentPage = self.count-1;
+            [self.scrollView setContentOffset:CGPointMake(0,self.scrollView.frame.size.height*(self.count)) animated:YES];
+
+        }
+        if ([self.delegate respondsToSelector:@selector(ScrollThePageNumber:)]) {
+            [self.delegate ScrollThePageNumber:self.count];
+        }
 
     }
-    if ([self.delegate respondsToSelector:@selector(ScrollThePageNumber:)]) {
-        [self.delegate ScrollThePageNumber:self.count];
-    }
+
 }
 
 - (void)beginTime{
@@ -199,8 +243,11 @@
 //当滚动视图停止时调用
 -(void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView{
     CGFloat offsetX = scrollView.contentOffset.x;
-    
-    int num = scrollView.contentOffset.x/(scrollView.frame.size.width);
+    int num = scrollView.contentOffset.y/(scrollView.frame.size.height);
+
+    if (self.scrollDirType == JHShufflingScrollDir_Right|| self.scrollDirType == JHShufflingScrollDir_Left) {
+        num = scrollView.contentOffset.x/(scrollView.frame.size.width);
+    }
 
     self.count = num;
     
@@ -210,12 +257,21 @@
 //        左滑滚到最后一个时，移动到第一个
         self.count = 1;
         self.page.currentPage = 0;
-        [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width, 0) animated:NO];
+        if (self.scrollDirType == JHShufflingScrollDir_Right|| self.scrollDirType == JHShufflingScrollDir_Left) {
+            [self.scrollView setContentOffset:CGPointMake(self.Vwidth, 0) animated:NO];
+        }else{
+            [self.scrollView setContentOffset:CGPointMake(0, self.Vheight) animated:NO];
+
+        }
     }else if (self.count == 0) {
 //        右滑滚到第0个时，移动到self.urlImageArray.count-2个
         self.count = self.urlImageArray.count-2;
         self.page.currentPage = self.urlImageArray.count-2 ;
-        [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width*(self.urlImageArray.count-2), 0) animated:NO];
+        if (self.scrollDirType == JHShufflingScrollDir_Right|| self.scrollDirType == JHShufflingScrollDir_Left) {
+            [self.scrollView setContentOffset:CGPointMake(self.Vwidth*(self.urlImageArray.count-2), 0) animated:NO];
+        }else{
+            [self.scrollView setContentOffset:CGPointMake(0, self.Vheight*(self.urlImageArray.count-2)) animated:NO];
+        }
     }
 //    滚动回调
     if ([self.delegate respondsToSelector:@selector(ScrollThePageNumber:)]) {
@@ -279,13 +335,30 @@
 - (void)setSelIndex:(NSInteger)selIndex{
     _selIndex = selIndex;
     self.count = selIndex;
-    self.scrollView.contentOffset = CGPointMake(self.scrollView.frame.size.width*(selIndex), 0);//初始页面
+    if (self.scrollDirType == JHShufflingScrollDir_Right||self.scrollDirType == JHShufflingScrollDir_Left) {
+        self.scrollView.contentOffset = CGPointMake(self.Vwidth*(selIndex), 0);//初始页面
+    }else{
+        self.scrollView.contentOffset = CGPointMake(0, self.Vheight*(selIndex));//初始页面
+    }
     self.page.currentPage = self.count-1;
     if ([self.delegate respondsToSelector:@selector(ScrollThePageNumber:)]) {
         [self.delegate ScrollThePageNumber:self.count];
     }
 }
 
+-(void)setScrollDirType:(JHShufflingScrollDirType)scrollDirType{
+    _scrollDirType = scrollDirType;
+    if (_scrollDirType == JHShufflingScrollDir_Right) {
+        
+    }else if(_scrollDirType == JHShufflingScrollDir_Left){
+        
+    }else if(_scrollDirType == JHShufflingScrollDir_Top){
+        
+    }else if(_scrollDirType == JHShufflingScrollDir_Bottom){
+        
+    }
+    
+}
 @end
 
 
@@ -298,14 +371,21 @@
 
 #pragma mark -- 下载管理
 + (void)beginDownLoadImageUrl:(NSString *)pathUrl downLoadFinish:(void (^)(NSString *filePath))loadFinish loadFailure:(void  (^)(NSError *error))loadFailure{
-    NSMutableString *imageName = [NSMutableString stringWithString:@"123.png"];
+    
+    NSString *imageName = @"123";
        NSArray *arr = [pathUrl componentsSeparatedByString:@"/"];
-      if (arr.count>0) {
-        imageName = [NSMutableString stringWithString:arr.lastObject];
-      }
-     NSRange range = [imageName rangeOfString:@".gif"];
-    if (range.location != NSNotFound) {
-        [imageName deleteCharactersInRange:range];
+    for (NSString *objs in arr) {
+        NSRange range = [objs rangeOfString:@".gif"];
+        NSRange range1 = [objs rangeOfString:@".png"];
+        NSRange range2 = [objs rangeOfString:@".jpeg"];
+        NSRange range3 = [objs rangeOfString:@".PNG"];
+        NSRange range4 = [objs rangeOfString:@".JPEG"];
+        NSRange range5 = [objs rangeOfString:@".GIF"];
+
+        if (range.location != NSNotFound||range1.location != NSNotFound||range2.location != NSNotFound||range3.location != NSNotFound||range4.location != NSNotFound||range5.location != NSNotFound) {
+            imageName = objs;
+        }
+
     }
        if ([self searchFileDirectory:IMG_PATH filePath:pathUrl]) {
            NSString *lujing = [[self CreateDirectory:IMG_PATH] stringByAppendingPathComponent:imageName];
@@ -485,5 +565,63 @@
        });
     }
 }
+//解析gif文件数据的方法 block中会将解析的数据传递出来
+-(void)getGifImageWithUrk:(NSURL *)url returnData:(void(^)(NSArray<UIImage *> * imageArray, NSArray<NSNumber *>*timeArray,CGFloat totalTime, NSArray<NSNumber *>* widths,NSArray<NSNumber *>* heights))dataBlock{
+    //通过文件的url来将gif文件读取为图片数据引用
+    CGImageSourceRef source = CGImageSourceCreateWithURL((CFURLRef)url, NULL);
+    //获取gif文件里图片的个数
+    size_t count = CGImageSourceGetCount(source);
+    //定义一个变量记录gif播放一轮的时间
+    float allTime=0;
+    //存放全部图片
+    NSMutableArray * imageArray = [[NSMutableArray alloc]init];
+    //存放每一帧播放的时间
+    NSMutableArray * timeArray = [[NSMutableArray alloc]init];
+    //存放每张图片的宽度 （一般在一个gif文件里，全部图片尺寸都会一样）
+    NSMutableArray * widthArray = [[NSMutableArray alloc]init];
+    //存放每张图片的高度
+    NSMutableArray * heightArray = [[NSMutableArray alloc]init];
+    //遍历
+    for (size_t i=0; i<count; i++) {
+        CGImageRef image = CGImageSourceCreateImageAtIndex(source, i, NULL);
+        [imageArray addObject:(__bridge UIImage *)(image)];
+        CGImageRelease(image);
+        //获取图片信息
+        NSDictionary * info = (__bridge NSDictionary*)CGImageSourceCopyPropertiesAtIndex(source, i, NULL);
+        CGFloat width = [[info objectForKey:(__bridge NSString *)kCGImagePropertyPixelWidth] floatValue];
+        CGFloat height = [[info objectForKey:(__bridge NSString *)kCGImagePropertyPixelHeight] floatValue];
+        [widthArray addObject:[NSNumber numberWithFloat:width]];
+        [heightArray addObject:[NSNumber numberWithFloat:height]];
+        NSDictionary * timeDic = [info objectForKey:(__bridge NSString *)kCGImagePropertyGIFDictionary];
+        CGFloat time = [[timeDic objectForKey:(__bridge NSString *)kCGImagePropertyGIFDelayTime]floatValue];
+        allTime+=time;
+        [timeArray addObject:[NSNumber numberWithFloat:time]];
+    }
+    dataBlock(imageArray,timeArray,allTime,widthArray,heightArray);
+}
 
+//为UIImageView加入一个设置gif图内容的方法：
+-(void)setGifImage:(NSURL *)imageUrl{
+    __weak id __self = self;
+    [self getGifImageWithUrk:imageUrl returnData:^(NSArray<UIImage *> *imageArray, NSArray<NSNumber *> *timeArray, CGFloat totalTime, NSArray<NSNumber *> *widths, NSArray<NSNumber *> *heights) {
+        //加入帧动画
+        CAKeyframeAnimation *animation = [CAKeyframeAnimation animationWithKeyPath:@"contents"];
+        NSMutableArray * times = [[NSMutableArray alloc]init];
+        float currentTime = 0;
+        //设置每一帧的时间占比
+        for (int i=0; i<imageArray.count; i++) {
+            [times addObject:[NSNumber numberWithFloat:currentTime/totalTime]];
+            currentTime+=[timeArray[i] floatValue];
+        }
+        [animation setKeyTimes:times];
+        [animation setValues:imageArray];
+        [animation setTimingFunction:[CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionLinear]];
+        //设置循环
+        animation.repeatCount= MAXFLOAT;
+        //设置播放总时长
+        animation.duration = totalTime;
+        //Layer层加入
+        [[(UIImageView *)__self layer]addAnimation:animation forKey:@"gifAnimation"];
+    }];
+}
 @end

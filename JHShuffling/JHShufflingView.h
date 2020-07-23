@@ -7,8 +7,13 @@
 //
 
 #import <UIKit/UIKit.h>
-
-
+//滚动的方向
+typedef enum : NSUInteger {
+    JHShufflingScrollDir_Right,//->右滚
+    JHShufflingScrollDir_Left,//-<左滚
+    JHShufflingScrollDir_Top,//∧上滚
+    JHShufflingScrollDir_Bottom,//∨下滚
+} JHShufflingScrollDirType;
 
 @protocol JHShufflingViewDelegate <NSObject>
 @optional
@@ -19,6 +24,7 @@
 
 
 @end
+
 @interface JHShufflingView : UIView
 
 @property(nonatomic,weak)id<JHShufflingViewDelegate> delegate;
@@ -30,6 +36,7 @@
 
 @property(nonatomic,assign)UIViewContentMode contentMode;//图片显示模式
 @property(nonatomic,assign)NSInteger selIndex;//设置当前选中页码
+@property(nonatomic,assign)JHShufflingScrollDirType scrollDirType;//滚动的方向
 
 - (void)removeTime;//如不使用定时器可移除即不使用
 /**------------------------------------------------------------page配置-------------------------------------------------------------------------------------------------------------*/
@@ -69,4 +76,9 @@
 @interface UIImageView(JHImageView)
 #pragma mark -- 下载管理
 + (void)beginDownLoadImageUrl:(NSString *)pathUrl downLoadFinish:(void (^)(NSString *filePath))loadFinish loadFailure:(void  (^)(NSError *error))loadFailure;
+//gif
+//解析gif文件数据的方法 block中会将解析的数据传递出来
+-(void)getGifImageWithUrk:(NSURL *)url returnData:(void(^)(NSArray<UIImage *> * imageArray, NSArray<NSNumber *>*timeArray,CGFloat totalTime, NSArray<NSNumber *>* widths,NSArray<NSNumber *>* heights))dataBlock;
+//为UIImageView加入一个设置gif图内容的方法：
+-(void)setGifImage:(NSURL *)imageUrl;
 @end
