@@ -59,6 +59,8 @@
     self.scrollView.bounces = YES;//弹性
     self.scrollView.delegate = self;
     self.scrollView.showsHorizontalScrollIndicator = NO;
+    self.scrollView.showsVerticalScrollIndicator = NO;
+
     [self addSubview:self.scrollView];
 
     
@@ -88,7 +90,6 @@
 
 #pragma mark -- 创建图片item
 - (void)setingShufflinhDatas:(NSMutableArray *)datas IsNetworking:(BOOL)isNet{
-    self.page.numberOfPages = datas.count-2;
     for (int i = 0 ; i< datas.count; i++) {
         CGRect imgFrame = CGRectMake(0, self.Vheight*i, self.Vwidth, self.Vheight);
         if (self.scrollDirType == JHShufflingScrollDir_Right|| self.scrollDirType == JHShufflingScrollDir_Left) {
@@ -155,7 +156,11 @@
         self.scrollView.contentSize = CGSizeMake(self.Vwidth,self.Vheight*datas.count);//设置内容大小
         self.count = 1;
     }
-
+    if (self.urlImageArray.count<=1) {
+        self.scrollView.contentOffset = CGPointMake(0, 0);//初始页面
+        self.scrollView.contentSize = CGSizeMake(self.scrollView.frame.size.width*datas.count,self.scrollView.frame.size.height);//设置内容大小
+        self.count = 1;
+    }
 }
 
 -(void)pageClick:(UIPageControl *)page{
@@ -163,33 +168,55 @@
 }
 //定时器任务
 - (void)runTime{
+
     if (self.scrollDirType == JHShufflingScrollDir_Right||self.scrollDirType == JHShufflingScrollDir_Bottom) {
         self.count++;
     }else if(self.scrollDirType == JHShufflingScrollDir_Left||self.scrollDirType == JHShufflingScrollDir_Top){
         self.count--;
     }
-    if (self.scrollDirType == JHShufflingScrollDir_Right||self.scrollDirType == JHShufflingScrollDir_Left) {
+    if (self.scrollDirType == JHShufflingScrollDir_Right) {
         if (self.count == self.urlImageArray.count-1 ) {
-                   self.count = 1;
-                   self.page.currentPage = 0;
-                   self.scrollView.contentOffset = CGPointMake(0, 0);
+           self.count = 1;
+           self.page.currentPage = 0;
+           self.scrollView.contentOffset = CGPointMake(0, 0);
 
-                   [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width, 0) animated:YES];
+           [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width, 0) animated:YES];
 
-               }else if (self.count == 0) {
-                   self.count = self.urlImageArray.count-2;
-                   self.page.currentPage = self.urlImageArray.count-2 ;
-                   [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width*(self.urlImageArray.count-2), 0) animated:YES];
-               }else{
-                   self.page.currentPage = self.count-1;
-                   [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width*(self.count), 0) animated:YES];
+        }else if (self.count == 0) {
+           self.count = self.urlImageArray.count-2;
+           self.page.currentPage = self.urlImageArray.count-2 ;
+           [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width*(self.urlImageArray.count-2), 0) animated:YES];
+        }else{
+           self.page.currentPage = self.count-1;
+           [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width*(self.count), 0) animated:YES];
 
-               }
-               if ([self.delegate respondsToSelector:@selector(ScrollThePageNumber:)]) {
-                   [self.delegate ScrollThePageNumber:self.count];
-               }
+        }
+        if ([self.delegate respondsToSelector:@selector(ScrollThePageNumber:)]) {
+           [self.delegate ScrollThePageNumber:self.count];
+        }
 
-    }else if(self.scrollDirType == JHShufflingScrollDir_Bottom||self.scrollDirType == JHShufflingScrollDir_Top){
+    }else if(self.scrollDirType == JHShufflingScrollDir_Left){
+        if (self.count == self.urlImageArray.count-1 ) {
+           self.count = 1;
+           self.page.currentPage = 0;
+           self.scrollView.contentOffset = CGPointMake(0, 0);
+
+           [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width, 0) animated:YES];
+
+        }else if (self.count == 0) {
+           self.count = self.urlImageArray.count-2;
+           self.page.currentPage = self.urlImageArray.count-2 ;
+            self.scrollView.contentOffset = CGPointMake(self.scrollView.frame.size.width*(self.urlImageArray.count-1), 0);
+           [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width*(self.urlImageArray.count-2), 0) animated:YES];
+        }else{
+           self.page.currentPage = self.count-1;
+           [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width*(self.count), 0) animated:YES];
+
+        }
+        if ([self.delegate respondsToSelector:@selector(ScrollThePageNumber:)]) {
+           [self.delegate ScrollThePageNumber:self.count];
+        }
+    }else if(self.scrollDirType == JHShufflingScrollDir_Bottom){
         if (self.count == self.urlImageArray.count-1 ) {
             self.count = 1;
             self.page.currentPage = 0;
@@ -211,6 +238,8 @@
             [self.delegate ScrollThePageNumber:self.count];
         }
 
+    }else if(self.scrollDirType == JHShufflingScrollDir_Top){
+        
     }
 
 }
@@ -305,13 +334,14 @@
     _urlImageArray = urlImageArray;
     if (urlImageArray.count<=1) {
         [self removeTime];
+        self.page.numberOfPages = 0;
         [self setingShufflinhDatas:_urlImageArray IsNetworking:YES];
         return;
     }
     [_urlImageArray addObject:_urlImageArray[0]];
     [_urlImageArray insertObject:_urlImageArray[_urlImageArray.count-2] atIndex:0];
 //    __weak typeof(self) weakSelf = self;
-
+    self.page.numberOfPages = urlImageArray.count-2;
     [self setingShufflinhDatas:_urlImageArray IsNetworking:YES];
 }
 
@@ -343,6 +373,10 @@
     self.page.currentPage = self.count-1;
     if ([self.delegate respondsToSelector:@selector(ScrollThePageNumber:)]) {
         [self.delegate ScrollThePageNumber:self.count];
+    }
+    if (self.urlImageArray.count<=1) {
+        self.scrollView.contentOffset = CGPointMake(0, 0);//初始页面
+
     }
 }
 
@@ -395,12 +429,24 @@
           dispatch_async(queue, ^{
               // 下载图片
               NSData *imgData = [NSData dataWithContentsOfURL:[NSURL URLWithString:pathUrl]];
+              
+//              NSRange range1 = [pathUrl rangeOfString:@".gif"];
+//              NSRange range2 = [pathUrl rangeOfString:@".GIF"];
+              NSData *bigData = [NSData dataWithData:imgData];
+
+//              if (range1.length>0||range2.length>0) {
+//
+//              }else{
+//                  UIImage *img = [UIImage imageWithData:imgData];
+//                  bigData = UIImageJPEGRepresentation(img, 0.2);
+//              }
+
               //
               if (imgData) {
                   dispatch_queue_t mainQueue = dispatch_get_main_queue();
                   dispatch_async(mainQueue, ^{
        //                       UIImage *img = [UIImage imageWithData:imgData];
-                      NSString *path = [self CreateFileTypeFileData:imgData directory:IMG_PATH fileName:imageName];
+                      NSString *path = [self CreateFileTypeFileData:bigData directory:IMG_PATH fileName:imageName];
                       loadFinish(path);
                   });
               } else {
@@ -544,8 +590,9 @@
            if (imgData) {
                dispatch_queue_t mainQueue = dispatch_get_main_queue();
                dispatch_async(mainQueue, ^{
-    //                       UIImage *img = [UIImage imageWithData:imgData];
-                   NSString *path = [UIImageView CreateFileTypeFileData:imgData directory:IMG_PATH fileName:imageName];
+                   UIImage *img = [UIImage imageWithData:imgData];
+                   NSData *bigData = UIImageJPEGRepresentation(img, 0.5);
+                   NSString *path = [UIImageView CreateFileTypeFileData:bigData directory:IMG_PATH fileName:imageName];
                    if (range.location != NSNotFound) {
 //                        [weakSelf setGifImage:[NSURL fileURLWithPath:path]];
 
